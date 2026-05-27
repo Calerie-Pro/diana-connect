@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -235,8 +234,8 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser=null,currentProfile=null,currentCat='all',currentConvUser=null,photoFile=null,aiHistory=[];
 
 async function checkAuth(){
-  const {data:{session}}=await sb.auth.getSession();
-  if(session){currentUser=session.user;await loadProfile();showApp();}
+  // Session non restaurée automatiquement — chaque user se connecte manuellement
+  await sb.auth.signOut();
 }
 
 function switchAuth(tab){
@@ -249,6 +248,9 @@ async function login(){
   const email=document.getElementById('login-email').value;
   const pass=document.getElementById('login-pass').value;
   document.getElementById('login-error').textContent='Connexion...';
+  // Déconnexion forcée avant connexion
+  await sb.auth.signOut();
+  currentUser=null;currentProfile=null;
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){document.getElementById('login-error').textContent='Email ou mot de passe incorrect';return;}
   currentUser=data.user;await loadProfile();showApp();
@@ -261,8 +263,12 @@ async function register(){
   const location=document.getElementById('reg-location').value.trim()||'Région DIANA';
   if(!username||!email||!pass){document.getElementById('reg-error').textContent='Remplissez tous les champs';return;}
   document.getElementById('reg-error').textContent='Création du compte...';
+  // Déconnexion forcée avant inscription
+  await sb.auth.signOut();
+  currentUser=null;currentProfile=null;
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){document.getElementById('reg-error').textContent=error.message;return;}
+  if(!data.user){document.getElementById('reg-error').textContent='Erreur création compte';return;}
   currentUser=data.user;
   await sb.from('profiles').upsert({id:currentUser.id,username,location});
   await loadProfile();showApp();
@@ -556,6 +562,4 @@ function timeAgo(date){
 checkAuth();
 </script>
 </body>
-</html>
-EOF
-echo "Done"
+  </html>
